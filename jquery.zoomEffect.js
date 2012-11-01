@@ -23,7 +23,7 @@ DEFAULT_OPTIONS = {
 	,scaleClass: 'mod-zoomEffect-scale' //{string} - 上に被せるelementのclass
 	,scaleOnClass: 'mod-zoomEffect-scaleOn' //{string} - 上に被せるelementのmouse over class
 	,scaleOffClass: 'mod-zoomEffect-scaleOff' //{string} - 上に被せるelementのmouse out class
-	,baseZindex: 1 //{number} - 関連する全てのelementに付与するz-index。hover時にこの値を元にz-indexが調整される
+	,baseZIndex: 1 //{number} - 関連する全てのelementに付与するz-index。hover時にこの値を元にz-indexが調整される
 };
 
 /**
@@ -35,7 +35,7 @@ ZoomEffect = function ($element, options) {
 	self.o = $.extend({}, DEFAULT_OPTIONS, options);
 
 	self.$wrapper = $element;
-	self.$element = $element.children().eq(0);
+	self.$element = self.$wrapper.children().eq(0);
 	self.offW = self.$element.width();
 	self.offH = self.$element.height();
 	self.onW  = self.offW * self.o.scale;
@@ -112,12 +112,12 @@ ZoomEffect.prototype = {
 			case 'init':
 				self.$wrapper.css({
 					 position: 'relative'
-					,zIndex: self.o.baseZindex
+					,zIndex: self.o.baseZIndex
 				});
 
 				self.$element.css({
 					 visibility: 'hidden'
-					,zIndex: self.o.baseZindex
+					,zIndex: self.o.baseZIndex
 				});
 
 				self.$cloneElement.css({
@@ -125,19 +125,19 @@ ZoomEffect.prototype = {
 					,top: 0
 					,left: 0
 					,maxWidth: 'none'
-					,zIndex: self.o.baseZindex + 1
+					,zIndex: self.o.baseZIndex + 1
 				});
 				break;
 
 			case 'scaleOn':
 				self.$wrapper.css({
-					zIndex: self.o.baseZindex + 2
+					zIndex: self.o.baseZIndex + 2
 				});
 				break;
 
 			case 'scaleOff':
 				self.$wrapper.css({
-					zIndex: self.o.baseZindex
+					zIndex: self.o.baseZIndex
 				});
 				break;
 		}
