@@ -20,10 +20,13 @@ var ZoomEffect
 DEFAULT_OPTIONS = {
 	 scale: 1.5 //{number} - 拡大サイズ
 	,speed: 500 //{number} - animation speed
+	,easing: 'swing' //{string} (swing | linear) - animation easing effect
 	,scaleClass: 'mod-zoomEffect-scale' //{string} - 上に被せるelementのclass
 	,scaleOnClass: 'mod-zoomEffect-scaleOn' //{string} - 上に被せるelementのmouse over class
 	,scaleOffClass: 'mod-zoomEffect-scaleOff' //{string} - 上に被せるelementのmouse out class
 	,baseZIndex: 1 //{number} - 関連する全てのelementに付与するz-index。hover時にこの値を元にz-indexが調整される
+	,scaleOnCallback: function () {} //{function} - run callback function after scale on animation
+	,scaleOffCallback: function () {} //{function} - run callback function after scale off animation
 };
 
 /**
@@ -36,14 +39,17 @@ ZoomEffect = function ($element, options) {
 
 	self.$wrapper = $element;
 	self.$element = self.$wrapper.children().eq(0);
+	self.$allElement = self.$element.add(self.$wrapper);
 	self.offW = self.$element.width();
 	self.offH = self.$element.height();
 	self.onW  = self.offW * self.o.scale;
 	self.onH  = self.offH * self.o.scale;
 	self.onLeft  = (self.offW - self.onW) / 2;
 	self.onTop  = (self.offH - self.onH) / 2;
+	self.scaleOnCallback = (typeof self.o.scaleOnCallback === 'function') ? self.o.scaleOnCallback : function () {};
+	self.scaleOffCallback = (typeof self.o.scaleOffCallback === 'function') ? self.o.scaleOffCallback : function () {};
 	self.animationFlag  = false;
-	
+
 	self.init();
 };
 
@@ -56,48 +62,62 @@ ZoomEffect.prototype = {
 	 * init
 	 */
 	init: function () {
-		var self = this;
+		var self = this
+			,$targetElement;
 
 		//mouseenter, mouseleave Event
 		self.$element.on({
-			'mouseenter':function(){
-				//$cloneElementが無ければ$elementをcloneして上に被せる
-				if(! self.$cloneElement) {
-					self.makeElement();
-					self.setClass('init');
-					self.setStyle('init');
+			'mouseenter':function () {
+				self.$element.off('mouseenter');
+
+				//$elementをcloneして上に被せる
+				self.$scalingElement = self.makeElement();
+				self.$allElement = self.$allElement.add(self.$scalingElement);
+
+				//scaleが1より小さい時に$elementをcloneしてタッチ判定用のElementを作る
+				if (self.o.scale < 1) {
+					self.$touchAreaElement = self.makeElement();
+					self.$allElement = self.$allElement.add(self.$touchAreaElement);
 				}
 
-				//clone elementにhoverイベントを設定
-				self.$cloneElement.on({
-					'mouseenter':function(){
+				// bind mouseenter target element
+				$targetElement = (self.o.scale < 1) ? self.$touchAreaElement : self.$scalingElement;
+
+				self.setClass('init');
+				self.setStyle('init');
+
+				$targetElement.on({
+					'mouseenter':function () {
 						self.setClass('scaleOn');
 						self.setStyle('scaleOn');
-						self.animate('scaleOn');
+						self.animate('scaleOn', function () {
+							self.scaleOnCallback();
+						});
 					},
 					'mouseleave':function(){
 						self.setClass('scaleOff');
 						self.setStyle('scaleOff');
-						self.animate('scaleOff');
+						self.animate('scaleOff', function () {
+							self.setStyle('scaleOffEnd');
+							self.scaleOffCallback();
+						});
 					}
 				});
 			}
 
 		});
-
 	}
 	,
 
 	/**
 	 * makeElement
-	 * $elementをcloneして$cloneElementを作成、$elementの上に被せる
+	 * $elementをcloneして新たなelementを作成、$wrapper内に挿入
 	 */
 	makeElement: function () {
 		var self = this;
 
-		self.$cloneElement = self.$element.clone()
-			.appendTo(self.$wrapper)
-		;
+		return self.$element.clone()
+			.appendTo(self.$wrapper);
 	}
 	,
 
@@ -112,31 +132,47 @@ ZoomEffect.prototype = {
 			case 'init':
 				self.$wrapper.css({
 					 position: 'relative'
-					,zIndex: self.o.baseZIndex
 				});
 
 				self.$element.css({
-					 visibility: 'hidden'
-					,zIndex: self.o.baseZIndex
+					opacity: 0.001
 				});
 
-				self.$cloneElement.css({
+				self.$scalingElement.css({
 					 position: 'absolute'
 					,top: 0
 					,left: 0
 					,maxWidth: 'none'
-					,zIndex: self.o.baseZIndex + 1
+				});
+
+				if (self.$touchAreaElement){
+					self.$touchAreaElement.css({
+						 position: 'absolute'
+						,top: 0
+						,left: 0
+						,opacity: 0.001
+					});
+				}
+
+				self.$allElement.css({
+					zIndex: self.o.baseZIndex
 				});
 				break;
 
 			case 'scaleOn':
-				self.$wrapper.css({
+				self.$allElement.css({
 					zIndex: self.o.baseZIndex + 2
 				});
 				break;
 
 			case 'scaleOff':
-				self.$wrapper.css({
+				self.$allElement.css({
+					zIndex: self.o.baseZIndex + 1
+				});
+				break;
+
+			case 'scaleOffEnd':
+				self.$allElement.css({
 					zIndex: self.o.baseZIndex
 				});
 				break;
@@ -171,8 +207,8 @@ ZoomEffect.prototype = {
 				break;
 		}
 
-		self.$cloneElement.addClass(_addClass);
-		self.$cloneElement.removeClass(_removeClass);
+		self.$scalingElement.addClass(_addClass);
+		self.$scalingElement.removeClass(_removeClass);
 	}
 	,
 
@@ -181,9 +217,10 @@ ZoomEffect.prototype = {
 	 * fadeアニメーション
 	 * @param {string} scale -
 	 */
-	animate: function (scaleState) {
+	animate: function (scaleState, callback) {
 		var self = this
-			,prop = {};
+			,prop = {}
+			;
 
 		self.animationFlag  = true;
 
@@ -207,9 +244,17 @@ ZoomEffect.prototype = {
 				break;
 		}
 
-		self.$cloneElement.stop(true,false).animate(prop, self.o.speed, function () {
-			self.animationFlag  = false;
-		});
+		self.$scalingElement.stop(true,false).animate(
+			prop,
+			{
+				 duration: self.o.speed
+				,easing: self.o.easing
+				,complete: function () {
+					self.animationFlag  = false;
+					callback();
+				}
+			}
+		);
 	}
 
 };//ZoomEffect.prototype
