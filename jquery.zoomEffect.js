@@ -9,6 +9,7 @@
  * @link      https://github.com/rin316/jquery.zoomEffect/
  */
 ;(function ($, window, undefined) {
+'use strict'
 
 var ZoomEffect
 	, DEFAULT_OPTIONS
