@@ -4,15 +4,15 @@
  * @varsion   1.0
  * @require   jquery.js
  * @create    2012-10-31
- * @modify    2012-11-01
- * @author    rin316 [Yuta Hayashi]
+ * @modify    2012-11-07
+ * @author    rin316 [Yuta Hayashi] - http://5am.jp/
  * @link      https://github.com/rin316/jquery.zoomEffect/
  */
 ;(function ($, window, undefined) {
 'use strict'
 
 var ZoomEffect
-	, DEFAULT_OPTIONS
+	,DEFAULT_OPTIONS
 	;
 
 /**
@@ -20,7 +20,7 @@ var ZoomEffect
  */
 DEFAULT_OPTIONS = {
 	 scale: 1.5 //{number} - 拡大サイズ
-	,speed: 500 //{number} - animation speed
+	,speed: 400 //{number} - animation speed
 	,easing: 'swing' //{string} (swing | linear) - animation easing effect
 	,scaleClass: 'mod-zoomEffect-scale' //{string} - 上に被せるelementのclass
 	,scaleOnClass: 'mod-zoomEffect-scaleOn' //{string} - 上に被せるelementのmouse over class
@@ -49,7 +49,7 @@ ZoomEffect = function ($element, options) {
 	self.onTop  = (self.offH - self.onH) / 2;
 	self.scaleOnCallback = (typeof self.o.scaleOnCallback === 'function') ? self.o.scaleOnCallback : function () {};
 	self.scaleOffCallback = (typeof self.o.scaleOffCallback === 'function') ? self.o.scaleOffCallback : function () {};
-	self.animationFlag  = false;
+	self.isAnimation = false;
 
 	self.init();
 };
@@ -58,11 +58,11 @@ ZoomEffect = function ($element, options) {
 /**
  * ZoomEffect.prototype
  */
-ZoomEffect.prototype = {
+(function (fn) {
 	/**
 	 * init
 	 */
-	init: function () {
+	fn.init = function () {
 		var self = this
 			,$targetElement;
 
@@ -107,26 +107,24 @@ ZoomEffect.prototype = {
 			}
 
 		});
-	}
-	,
+	};
 
 	/**
 	 * makeElement
 	 * $elementをcloneして新たなelementを作成、$wrapper内に挿入
 	 */
-	makeElement: function () {
+	fn.makeElement = function () {
 		var self = this;
 
 		return self.$element.clone()
 			.appendTo(self.$wrapper);
-	}
-	,
+	};
 
 	/**
 	 * setStyle
 	 * set css style on html element
 	 */
-	setStyle: function (scaleState) {
+	fn.setStyle = function (scaleState) {
 		var self = this;
 
 		switch (scaleState){
@@ -178,14 +176,13 @@ ZoomEffect.prototype = {
 				});
 				break;
 		}
-	}
-	,
+	};
 
 	/**
 	 * setClass
 	 * set class on html element
 	 */
-	setClass: function (scaleState) {
+	fn.setClass = function (scaleState) {
 		var self = this
 			,_addClass
 			,_removeClass
@@ -210,20 +207,19 @@ ZoomEffect.prototype = {
 
 		self.$scalingElement.addClass(_addClass);
 		self.$scalingElement.removeClass(_removeClass);
-	}
-	,
+	};
 
 	/**
 	 * animate
 	 * fadeアニメーション
 	 * @param {string} scale -
 	 */
-	animate: function (scaleState, callback) {
+	fn.animate = function (scaleState, callback) {
 		var self = this
 			,prop = {}
 			;
 
-		self.animationFlag  = true;
+		self.isAnimation = true;
 
 		switch (scaleState){
 			case 'scaleOn':
@@ -251,14 +247,13 @@ ZoomEffect.prototype = {
 				 duration: self.o.speed
 				,easing: self.o.easing
 				,complete: function () {
-					self.animationFlag  = false;
+					self.isAnimation = false;
 					callback();
 				}
 			}
 		);
-	}
-
-};//ZoomEffect.prototype
+	};
+})(ZoomEffect.prototype);//ZoomEffect.prototype
 
 
 /**
